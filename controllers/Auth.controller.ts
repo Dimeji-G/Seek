@@ -229,6 +229,9 @@ const AuthController: AuthControllerInterface = {
         try {
             const otp = Math.floor(1000 + Math.random() * 9000);
             otpCache.set(`${email}`, otp, 7200);
+            console.log(email, name, otp)
+            console.log("sending OTP...");
+            console.log(process.env.MAIL_FROM_ADDRESS, process.env.MAIL_HOST, process.env.MAIL_PORT, process.env.MAIL_USER, process.env.MAIL_PASSWORD, process.env.MAIL_MAILER);
             sendOTP(email, name, otp);
             return res.status(200).json({
                 success: true,
