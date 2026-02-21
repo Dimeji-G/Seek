@@ -4,7 +4,8 @@ import AuthController  from './controllers/Auth.controller'
 import { upload } from "./services/Multer.services";
 import { analyzeImageQuestion } from './controllers/userActions/imageScan';
 import middleware from "./Middlewares/Auth.middleware";
-import {reccommendMeals} from './controllers/userActions/suggestMeals'
+import {reccommendMeals} from './controllers/userActions/suggestMeals';
+import {generateBotCode}  from "./controllers/userActions/generateBotCode";
 
 
 const express = require("express");
@@ -65,6 +66,7 @@ app.post("/api/v1/verifyToken", AuthController.verifyToken);
 app.post("/api/v1/completeSignup", AuthController.completeSignup);
 app.post("/api/v1/imageScan", middleware.verifyToken, upload.single('image'), analyzeImageQuestion);
 app.get("/api/v1/recommendMeals", middleware.verifyToken, reccommendMeals);
+app.post("/api/v1/generateBotCode", middleware.verifyToken, generateBotCode);
 
 
 console.log("starting server...");
