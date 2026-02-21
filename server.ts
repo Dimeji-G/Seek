@@ -6,6 +6,8 @@ import { analyzeImageQuestion } from './controllers/userActions/imageScan';
 import middleware from "./Middlewares/Auth.middleware";
 import {reccommendMeals} from './controllers/userActions/suggestMeals';
 import {generateBotCode}  from "./controllers/userActions/generateBotCode";
+import {sendChat} from "./controllers/userActions/sendChat";
+import {getDetailedMealAnalysis} from './controllers/userActions/getMealDetails';
 
 
 const express = require("express");
@@ -67,6 +69,8 @@ app.post("/api/v1/completeSignup", AuthController.completeSignup);
 app.post("/api/v1/imageScan", middleware.verifyToken, upload.single('image'), analyzeImageQuestion);
 app.get("/api/v1/recommendMeals", middleware.verifyToken, reccommendMeals);
 app.post("/api/v1/generateBotCode", middleware.verifyToken, generateBotCode);
+app.post("/api/v1/sendChat", middleware.verifyToken, sendChat);
+app.post("/api/v1/getAnalysis", middleware.verifyToken, getDetailedMealAnalysis);
 
 
 console.log("starting server...");
