@@ -1,6 +1,10 @@
 import sequelize  from "./config/Sequelize";
 import { sanitizeRequest } from "./Middlewares/sanitizeRequest.middleware";
 import AuthController  from './controllers/Auth.controller'
+import { upload } from "./services/Multer.services";
+import { analyzeImageQuestion } from './controllers/userActions/imageScan';
+import middleware from "./Middlewares/Auth.middleware";
+
 
 const express = require("express");
 const dotenv = require("dotenv");
@@ -58,6 +62,7 @@ app.post("/api/v1/forgotPassword", AuthController.sendForgotPasswordEmail);
 app.post("/api/v1/resetPassword", AuthController.resetPassword);
 app.post("/api/v1/verifyToken", AuthController.verifyToken);
 app.post("/api/v1/completeSignup", AuthController.completeSignup);
+app.post("/api/v1/imageScan", middleware.verifyToken, upload.single('image'), analyzeImageQuestion)
 
 
 console.log("starting server...");
