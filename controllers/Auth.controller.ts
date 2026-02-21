@@ -81,9 +81,9 @@ const AuthController: AuthControllerInterface = {
         }
 
         const requestBody = req.body;
-        let { firstName, lastName, email, password, oauth, oauth_method } = requestBody;
+        let { firstName, lastName, email, phone_number, password, oauth, oauth_method } = requestBody;
 
-        const requiredKeys = ['firstName', 'lastName', 'email'];
+        const requiredKeys = ['firstName', 'lastName', 'email', 'phone_number'];
 
         const missingKey = requiredKeys.find(key => !(key in requestBody));
 
@@ -124,6 +124,7 @@ const AuthController: AuthControllerInterface = {
                 firstName,
                 lastName,
                 email,
+                phone_number,
                 password: hashedPassword,
                 oauth: oauth || '',
                 oauth_method: oauth_method || '',
@@ -131,11 +132,16 @@ const AuthController: AuthControllerInterface = {
 
             await User.create({
                 ...user,
-            }).then((user) => {
+            }).then(async (user) => {
                 delete user.dataValues.password;
                 delete user.dataValues.createdAt;
                 delete user.dataValues.updatedAt;
                 delete user.dataValues.id;
+
+                await UserVerification.create({
+                    userEmail: email,
+                    isVerified: true,
+                });
 
                 const token = jwt.sign(user.dataValues, process.env.SECRET_KEY, {
                     expiresIn: "90d",

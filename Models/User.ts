@@ -6,6 +6,7 @@ class User extends Model {
   public firstName!: string;
   public lastName!: string;
   public email!: string;
+  public phone_number!: string;
   public password!: string;
   public oauth!: string | null;
   public oauth_method!: string | null;
@@ -43,6 +44,10 @@ User.init(
       allowNull: false,
       unique: true,
       validate: { isEmail: true }
+    },
+    phone_number: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
     },
     password: {
       type: DataTypes.STRING(255),
