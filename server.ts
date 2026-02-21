@@ -8,6 +8,7 @@ import {reccommendMeals} from './controllers/userActions/suggestMeals';
 import {generateBotCode}  from "./controllers/userActions/generateBotCode";
 import {sendChat} from "./controllers/userActions/sendChat";
 import {getDetailedMealAnalysis} from './controllers/userActions/getMealDetails';
+import {analyzeQrCode} from './controllers/userActions/analyzeQrCode';
 
 
 const express = require("express");
@@ -71,6 +72,7 @@ app.get("/api/v1/recommendMeals", middleware.verifyToken, reccommendMeals);
 app.post("/api/v1/generateBotCode", middleware.verifyToken, generateBotCode);
 app.post("/api/v1/sendChat", middleware.verifyToken, sendChat);
 app.post("/api/v1/getAnalysis", middleware.verifyToken, getDetailedMealAnalysis);
+app.post("/api/v1/analyzeQrCode", middleware.verifyToken, analyzeQrCode);
 
 
 console.log("starting server...");
