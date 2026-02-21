@@ -1,5 +1,6 @@
 import sequelize  from "./config/Sequelize";
 import { sanitizeRequest } from "./Middlewares/sanitizeRequest.middleware";
+import AuthController  from './controllers/Auth.controller'
 
 const express = require("express");
 const dotenv = require("dotenv");
@@ -45,6 +46,18 @@ app.use(
 );
 
 app.use(sanitizeRequest);  // Sanitize request body middleware
+
+
+// Auth Routes
+app.post("/api/v1/login", AuthController.login);
+app.post("/api/v1/signup", AuthController.signup);
+// app.get("/api/v1/refreshToken", middleware.verifyToken, AuthController.refreshToken);
+app.post("/api/v1/verifyOTP", AuthController.verifyOTP);
+app.post("/api/v1/otp", AuthController.sendOTP);
+app.post("/api/v1/forgotPassword", AuthController.sendForgotPasswordEmail);
+app.post("/api/v1/resetPassword", AuthController.resetPassword);
+app.post("/api/v1/verifyToken", AuthController.verifyToken);
+app.post("/api/v1/completeSignup", AuthController.completeSignup);
 
 
 console.log("starting server...");
