@@ -85,7 +85,7 @@ import { transporter } from "../utils/mailing.utils"
   
       transporter.sendMail(mailOptions, async (error: any, info: any) => {
         if (error) {
-          console.log("error");
+          console.log("error", error);
         } else {
           return true;
         }
