@@ -21,7 +21,7 @@ function stripDangerousKeys(obj: any): any {
   return obj;
 }
 
-const sqlInjectionPattern = /('|--|;|\/\*|\*\/|\b(SELECT|UNION|INSERT|UPDATE|DELETE|DROP|WHERE|OR|AND)\b)/i;
+const sqlInjectionPattern = /('|--|;|\/\*|\*\/|\b(SELECT|UNION|INSERT|UPDATE|DELETE|DROP|WHERE|OR|AND)\b)/;
 
 function logSuspiciousInput(val: any): void {
   const check = (input: any): boolean => {
