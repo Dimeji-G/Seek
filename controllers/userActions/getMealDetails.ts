@@ -97,6 +97,7 @@ export const getDetailedMealAnalysis = async (
         },
       },
     });
+    
 
     const json = JSON.parse(response.text as string);
     return res.status(200).json({ response: json });
