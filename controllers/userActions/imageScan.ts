@@ -45,7 +45,7 @@ export const analyzeImageQuestion = async (
     
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: process.env.AI_MODEL || "gemini-2.0-flash",
       contents: [
         {
           role: "user",

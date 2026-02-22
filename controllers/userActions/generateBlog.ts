@@ -10,7 +10,7 @@ export const generateExtensiveBlogPost = async (
 ) => {
   try {
     const user = req.user as unknown as User;
-    const { topic, category, reading_time, target_audience } = req.query;
+    const { topic, category, reading_time, target_audience } = req.body;
 
     if (!topic || !category || !reading_time || !target_audience) {
       return res.status(400).json({ error: "Please provide all required fields." });
