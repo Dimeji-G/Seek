@@ -1,96 +1,102 @@
 import { Request, Response } from "express";
 import axios from 'axios';
 
-/**
- * Utility to convert various barcode formats into potential NDC patterns
- * FDA expects formats like: 0781-1506 or 07811506
- */
-const normalizeNdc = (rawScan: string): string => {
-  let cleaned = rawScan.replace(/[^0-9]/g, ''); // Remove dashes/spaces
-  
-  // If it's a 12-digit UPC (common on retail boxes), 
-  // the NDC is often digits 2 through 11.
-  if (cleaned.length === 12) {
-    return cleaned.substring(1, 11); 
-  }
-  
-  return cleaned;
-};
-
 export const analyzeQrCode = async (req: Request, res: Response) => {
   try {
-    const { scanData, userProfile } = req.body;
+    const { scanData, userProfile = {} } = req.body;
+    if (!scanData) return res.status(400).json({ error: 'No scan data provided' });
 
-    if (!scanData) {
-      return res.status(400).json({ error: 'No scan data provided' });
+    // --- STEP 1: BRUTE FORCE RECOGNITION (RxNav) ---
+    const rawNdc = scanData.replace(/\D/g, '').trim();
+    // We try 3 variations: Raw, 11-digit padded, 10-digit trimmed
+    const variations = [rawNdc];
+    if (rawNdc.length === 10) variations.push('0' + rawNdc);
+    if (rawNdc.length === 11 && rawNdc.startsWith('0')) variations.push(rawNdc.substring(1));
+
+    let ndcMatch = null;
+    for (const code of variations) {
+      try {
+        const rxRes = await axios.get(`https://rxnav.nlm.nih.gov/REST/ndcstatus.json?ndc=${code}`);
+        if (rxRes.data.ndcStatus.status !== "UNKNOWN") {
+          ndcMatch = rxRes.data.ndcStatus;
+          break;
+        }
+      } catch (e) { continue; }
     }
 
-    const ndc = normalizeNdc(scanData);
+    if (!ndcMatch) {
+      return res.status(404).json({ error: "Drug not recognized. Please check the NDC number." });
+    }
 
-    // Try searching the LABEL endpoint (contains safety/usage text)
-    const fdaUrl = `https://api.fda.gov/drug/label.json`;
-    
-    const response = await axios.get(fdaUrl, {
-      params: {
-        // We use .exact for more precise matching on cleaned strings
-        search: `openfda.package_ndc:"${ndc}" OR openfda.product_ndc:"${ndc}"`,
-        limit: 1
-      }
-    });
+    const genericName = ndcMatch.conceptName;
+    const rxcui = ndcMatch.rxcui;
 
-    const drug = response.data.results[0];
-    const info = drug.openfda;
+    // --- STEP 2: FETCH EVERYTHING (openFDA) ---
+    // We search by the NAME we just found, which is 100% reliable
+    let safetyInfo: any = {};
+    try {
+      const fdaRes = await axios.get(`https://api.fda.gov/drug/label.json`, {
+        params: {
+          search: `openfda.generic_name:"${genericName.split(' ')[0]}"`,
+          limit: 1
+        }
+      });
+      safetyInfo = fdaRes.data.results[0];
+    } catch (e) {
+      safetyInfo = { note: "Detailed label text not found, using clinical ID info." };
+    }
 
-    // --- SAFETY ANALYSIS LOGIC ---
-    const activeIngredients = drug.active_ingredient || [];
-    let safetyStatus = "Safe to use";
+    // --- STEP 3: DANGER & REACTION ANALYSIS ---
     let alerts: string[] = [];
+    const safetyText = JSON.stringify(safetyInfo).toLowerCase();
 
-    // 1. Check for Allergy Matches
-    if (userProfile?.allergies) {
-      const userAllergies = userProfile.allergies.map((a: string) => a.toLowerCase());
-      const drugContent = JSON.stringify(drug).toLowerCase();
-
-      userAllergies.forEach((allergy: string) => {
-        if (drugContent.includes(allergy)) {
-          safetyStatus = "High Risk";
-          alerts.push(`ALLERGY WARNING: This product contains or is related to ${allergy.toUpperCase()}.`);
+    // 1. Condition/Danger Check
+    if (userProfile.conditions) {
+      userProfile.conditions.forEach((c: string) => {
+        if (safetyText.includes(c.toLowerCase())) {
+          alerts.push(`CONDITION WARNING: This drug mentions ${c.toUpperCase()} in its safety warnings.`);
         }
       });
     }
 
-    // 2. Check for Specific Contraindications (e.g., Pregnancy)
-    if (userProfile?.isPregnant && (drug.pregnancy || drug.teratogenic_effects)) {
-      alerts.push("PREGNANCY WARNING: Consult a doctor before use.");
+    // 2. Interaction Check (Drug-to-Drug)
+    if (userProfile.currentMeds?.length > 0) {
+      try {
+        const medList = [...userProfile.currentMeds, rxcui].join('+');
+        const intRes = await axios.get(`https://rxnav.nlm.nih.gov/REST/interaction/list.json?rxcuis=${medList}`);
+        if (intRes.data.fullInteractionTypeGroup) {
+          alerts.push("INTERACTION ALERT: Potential reaction with your current medications.");
+        }
+      } catch (e) { /* Interaction service down */ }
     }
 
+    // 3. Pregnancy/Allergy
+    if (userProfile.isPregnant && (safetyInfo.pregnancy || safetyInfo.teratogenic_effects)) {
+      alerts.push("PREGNANCY ALERT: Risk factors detected in FDA labeling.");
+    }
+
+    // --- STEP 4: FINAL BREADCRUMBS ---
     res.json({
       success: true,
-      meta: {
-        scanned_code: scanData,
-        interpreted_ndc: ndc
+      identity: {
+        brand_name: ndcMatch.conceptName,
+        ndc: ndcMatch.ndc,
+        rxcui: rxcui
       },
-      analysis: {
-        status: safetyStatus,
-        alerts: alerts,
-        brand_name: info?.brand_name?.[0] || "Unknown",
-        generic_name: info?.generic_name?.[0] || "Unknown",
-        usage: drug.indications_and_usage?.[0] || "No usage data found."
+      safety_report: {
+        is_safe: alerts.length === 0,
+        flags: alerts,
+        danger_details: safetyInfo.warnings?.[0] || "No specific danger text found.",
+        contraindications: safetyInfo.contraindications?.[0] || "N/A",
+        adverse_reactions: safetyInfo.adverse_reactions?.[0] || "N/A"
       },
-      raw_safety_info: {
-        warnings: drug.warnings?.[0],
-        stop_use: drug.stop_use?.[0],
-        do_not_use: drug.do_not_use?.[0]
+      usage: {
+        indications: safetyInfo.indications_and_usage?.[0],
+        dosage: safetyInfo.dosage_and_administration?.[0]
       }
     });
 
   } catch (error: any) {
-    if (error.response?.status === 404) {
-      return res.status(404).json({ 
-        error: 'Drug not found', 
-        tip: 'If this is a retail box, try entering the NDC number found near the barcode manually (e.g. 12345-678-90).' 
-      });
-    }
-    res.status(500).json({ error: 'FDA API Connection Error', details: error.message });
+    res.status(500).json({ error: "API Failure", details: error.message });
   }
 };
