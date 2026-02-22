@@ -33,6 +33,9 @@ export const sendChat = async (
       3. Safety: Strictly avoid any ingredients listed in the User's Allergies (${user?.allergies?.join(", ")}).
       4. Scoring: Provide a 'health_score' (0-100) based on alignment with: ${user?.userGoals?.join(", ")}.
       5. Tone: Be supportive, professional, and culturally informed.
+
+
+      **recommend meals to the user only when it is relevant to the conversation.**
     `;
 
     const contents = [
@@ -82,7 +85,7 @@ export const sendChat = async (
               maxItems: 3
             }
           },
-          required: ["chat_response", "recommended_meals", "follow_up_suggestions"]
+          required: ["chat_response", "follow_up_suggestions"]
         },
       },
     });
