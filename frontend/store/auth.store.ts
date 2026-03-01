@@ -5,7 +5,7 @@ export interface SignupState extends Partial<ProfilePayload> {
   FirstName: string;
   LastName: string;
   Email: string;
-  PhoneNumber?: string;
+  PhoneNumber: string;
   Password: string;
   ConfirmPassword: string;
   currentStep: number;

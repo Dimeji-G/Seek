@@ -122,7 +122,7 @@ const SignUpForm = ({ form, onSubmit }: SignUpFormProps) => {
             name="PhoneNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="font-medium">Phone Number </FormLabel>
+                <FormLabel className="font-medium">Phone Number *</FormLabel>
                 <FormControl>
                   <PrimaryInput
                     type="tel"
