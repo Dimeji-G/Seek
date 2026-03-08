@@ -117,7 +117,6 @@ const SidebarGroupCustom = ({
 
 export function AppSidebar() {
   const items = [
-    { title: "Search", url: "/search", icon: Search },
     { title: "Explore", url: "/explore", icon: Search },
     { title: "Home", url: "/home", icon: Home },
     { title: "Chat", url: "/chat", icon: Inbox },
@@ -135,7 +134,7 @@ export function AppSidebar() {
 
   const { user } = useUserStore();
   return (
-    <Sidebar className="min-w-[205px] sidebar !bg-[#2C2C2C] text-white">
+    <Sidebar className="sidebar !bg-[#2C2C2C] text-white">
       <SidebarHeader>
         <SidebarGroup>
           <SidebarGroupContent className="flex items-center justify-between">
